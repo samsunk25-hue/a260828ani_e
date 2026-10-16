@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Cylinder, Text, Float, MeshDistortMaterial, MeshWobbleMaterial, Box, Torus } from '@react-three/drei';
+import { Sphere, Cylinder, Float, MeshDistortMaterial, MeshWobbleMaterial, Box, Torus } from '@react-three/drei';
+import Label from '../scene/Label';
 import * as THREE from 'three';
 
 // 더 복잡하고 꼬불꼬불한 소장/대장 커브
@@ -101,7 +102,7 @@ const IntroStage = () => {
               </Sphere>
             </group>
             
-            <Text position={[0, -2, 0.5]} fontSize={0.25} color="#ff99bb">호흡계</Text>
+            <Label position={[0, -2, 0.5]} fontSize={0.25} color="#ff99bb">호흡계</Label>
           </group>
 
           {/* 3. 순환계 (Heart) - 심방/심실 및 주요 혈관 디테일업 */}
@@ -130,7 +131,7 @@ const IntroStage = () => {
             
             {/* 고동치는 붉은 빛 */}
             <pointLight position={[0, 0, 1]} intensity={0.5} color="#ff0000" distance={3} />
-            <Text position={[0, -1.2, 0]} fontSize={0.25} color="#ff3344">순환계</Text>
+            <Label position={[0, -1.2, 0]} fontSize={0.25} color="#ff3344">순환계</Label>
           </group>
 
           {/* 4. 소화계 (Liver, Stomach, Intestines) */}
@@ -156,7 +157,7 @@ const IntroStage = () => {
               <MeshWobbleMaterial color="#cc8844" factor={0.2} speed={1.5} roughness={0.5} />
             </mesh>
             
-            <Text position={[0, -4.5, 0.5]} fontSize={0.25} color="#ddaa55">소화계 (간, 위, 장)</Text>
+            <Label position={[0, -4.5, 0.5]} fontSize={0.25} color="#ddaa55">소화계 (간, 위, 장)</Label>
           </group>
 
           {/* 5. 배설계 (Kidneys & Bladder) */}
@@ -194,7 +195,7 @@ const IntroStage = () => {
               <OrganMaterial color="#ffaa88" transmission={0.5} opacity={0.9} roughness={0.4} />
             </Sphere>
             
-            <Text position={[0, -3.2, 0]} fontSize={0.25} color="#cc6655">배설계 (신장, 방광)</Text>
+            <Label position={[0, -3.2, 0]} fontSize={0.25} color="#cc6655">배설계 (신장, 방광)</Label>
           </group>
           
         </group>

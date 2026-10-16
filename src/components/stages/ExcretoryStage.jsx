@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Cylinder, Text, DragControls } from '@react-three/drei';
+import { Sphere, Cylinder, DragControls } from '@react-three/drei';
+import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
@@ -11,38 +12,38 @@ const NephronStructure = () => {
       <Sphere args={[1.2, 16, 16]} position={[-4, 1, 0]}>
         <meshStandardMaterial color="#ff2233" wireframe />
       </Sphere>
-      <Text position={[-4, 2.5, 0]} fontSize={0.3} color="#ff8888" anchorX="center">
+      <Label position={[-4, 2.5, 0]} fontSize={0.3} color="#ff8888" anchorX="center">
         사구체 (Glomerulus)
-      </Text>
+      </Label>
 
       {/* Bowman's Capsule (보먼주머니) */}
       <Sphere args={[1.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} position={[-4, 1.2, 0]} rotation={[Math.PI, 0, 0]}>
         <meshStandardMaterial color="#ffcc00" transparent opacity={0.3} side={THREE.DoubleSide} />
       </Sphere>
-      <Text position={[-4, -0.5, 0]} fontSize={0.3} color="#ffcc00" anchorX="center">
+      <Label position={[-4, -0.5, 0]} fontSize={0.3} color="#ffcc00" anchorX="center">
         보먼주머니
-      </Text>
+      </Label>
 
       {/* Renal Tubule (세뇨관) */}
       <Cylinder args={[0.5, 0.5, 8, 32]} position={[0, -1, 0]} rotation={[0, 0, Math.PI / 2]}>
         <meshStandardMaterial color="#ffcc00" transparent opacity={0.3} />
       </Cylinder>
-      <Text position={[0, -2, 0]} fontSize={0.3} color="#ffcc00" anchorX="center">
+      <Label position={[0, -2, 0]} fontSize={0.3} color="#ffcc00" anchorX="center">
         세뇨관 (Tubule)
-      </Text>
+      </Label>
 
       {/* Capillary around Tubule (모세혈관) */}
       <Cylinder args={[0.4, 0.4, 8, 32]} position={[0, -3, 0]} rotation={[0, 0, Math.PI / 2]}>
         <meshStandardMaterial color="#ff2233" transparent opacity={0.5} />
       </Cylinder>
-      <Text position={[0, -4, 0]} fontSize={0.3} color="#ff8888" anchorX="center">
+      <Label position={[0, -4, 0]} fontSize={0.3} color="#ff8888" anchorX="center">
         모세혈관 (Capillary)
-      </Text>
+      </Label>
       
       {/* Urine Collection (집합관으로) */}
-      <Text position={[4.5, -1, 0]} fontSize={0.3} color="white" anchorX="center">
+      <Label position={[4.5, -1, 0]} fontSize={0.3} color="white" anchorX="center">
         오줌(Urine) 배출 ➔
-      </Text>
+      </Label>
     </group>
   );
 };
@@ -68,9 +69,9 @@ const DraggableMolecule = ({ id, position, color, label, size, onDrop, disabled 
         <Sphere args={[size, 16, 16]}>
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
         </Sphere>
-        <Text position={[0, -size - 0.3, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
+        <Label position={[0, -size - 0.3, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
           {label}
-        </Text>
+        </Label>
       </group>
     </DragControls>
   );
@@ -155,20 +156,20 @@ const ExcretoryStage = () => {
       <NephronStructure />
 
       {/* Guide Instructions based on Phase */}
-      <Text position={[0, 4, 0]} fontSize={0.5} color="#00f3ff" anchorX="center">
+      <Label position={[0, 4, 0]} fontSize={0.5} color="#00f3ff" anchorX="center">
         {phase === 0 ? "1단계: 여과 (사구체 ➔ 보먼주머니)" : phase === 1 ? "2단계: 재흡수 (세뇨관 ➔ 모세혈관)" : "배설 완료!"}
-      </Text>
+      </Label>
       
       {phase === 0 && (
-        <Text position={[0, 3.2, 0]} fontSize={0.25} color="white" anchorX="center">
+        <Label position={[0, 3.2, 0]} fontSize={0.25} color="white" anchorX="center">
           단백질은 크기가 커서 여과되지 않고 혈관에 남습니다. 포도당과 요소는 보먼주머니로 여과시키세요.
-        </Text>
+        </Label>
       )}
       
       {phase === 1 && (
-        <Text position={[0, 3.2, 0]} fontSize={0.25} color="white" anchorX="center">
+        <Label position={[0, 3.2, 0]} fontSize={0.25} color="white" anchorX="center">
           필요한 영양소(포도당)는 모세혈관으로 100% 재흡수시키고, 노폐물(요소)은 끝까지 배출시키세요.
-        </Text>
+        </Label>
       )}
 
       {/* Molecules */}

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Box, Sphere, Text, DragControls } from '@react-three/drei';
+import { Box, Sphere, DragControls } from '@react-three/drei';
+import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
@@ -26,9 +27,9 @@ const Chamber = ({ position, color, label, isTarget }) => {
           depthWrite={false}
         />
       </Box>
-      <Text position={[0, 0, 1.5]} fontSize={0.35} color="white" anchorX="center" anchorY="middle">
+      <Label position={[0, 0, 1.5]} fontSize={0.35} color="white" anchorX="center" anchorY="middle">
         {label}
-      </Text>
+      </Label>
     </group>
   );
 };
@@ -56,9 +57,9 @@ const Organ = ({ position, color, label, isTarget, isMitochondria }) => {
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
         </Sphere>
       )}
-      <Text position={[0, isMitochondria ? -1.5 : -2, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
+      <Label position={[0, isMitochondria ? -1.5 : -2, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
         {label}
-      </Text>
+      </Label>
     </group>
   );
 };
@@ -92,9 +93,9 @@ const DraggableBlood = ({ position, isOxygenated, onDrop }) => {
             roughness={0.2}
           />
         </Sphere>
-        <Text position={[0, -0.8, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
+        <Label position={[0, -0.8, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
           {isOxygenated ? "동맥혈(O2+영양소)" : "정맥혈(CO2+노폐물)"}
-        </Text>
+        </Label>
       </group>
     </DragControls>
   );
@@ -203,9 +204,9 @@ const CirculatoryStage = () => {
 
       {/* Feedback Text */}
       {feedback.visible && (
-        <Text position={[0, 0, 4]} fontSize={0.6} color={feedback.color} anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="black">
+        <Label position={[0, 0, 4]} fontSize={0.6} color={feedback.color} anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="black">
           {feedback.text}
-        </Text>
+        </Label>
       )}
 
       {/* Success Particle Effect */}
@@ -217,9 +218,9 @@ const CirculatoryStage = () => {
               <meshBasicMaterial color="#ffcc00" />
             </mesh>
           ))}
-          <Text position={[0, 0, 3]} fontSize={1} color="#39ff14" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="black">
+          <Label position={[0, 0, 3]} fontSize={1} color="#39ff14" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="black">
             순환 성공!
-          </Text>
+          </Label>
         </group>
       )}
     </group>

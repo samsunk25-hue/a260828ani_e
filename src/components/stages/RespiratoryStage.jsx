@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Text, MeshWobbleMaterial, DragControls } from '@react-three/drei';
+import { Sphere, MeshWobbleMaterial, DragControls } from '@react-three/drei';
+import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
@@ -56,9 +57,9 @@ const DraggableGas = ({ id, initialPosition, color, label, onDrop }) => {
         <Sphere args={[0.3, 16, 16]}>
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
         </Sphere>
-        <Text position={[0, -0.6, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
+        <Label position={[0, -0.6, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
           {label}
-        </Text>
+        </Label>
       </group>
     </DragControls>
   );
@@ -111,12 +112,12 @@ const RespiratoryStage = () => {
       </mesh>
 
       {/* Guide Texts */}
-      <Text position={[0, 3, 0]} fontSize={0.4} color="#ffb3c6" anchorX="center" anchorY="middle">
+      <Label position={[0, 3, 0]} fontSize={0.4} color="#ffb3c6" anchorX="center" anchorY="middle">
         폐포 (Alveolus)
-      </Text>
-      <Text position={[4.5, 3, 0]} fontSize={0.4} color="#ff3366" anchorX="center" anchorY="middle">
+      </Label>
+      <Label position={[4.5, 3, 0]} fontSize={0.4} color="#ff3366" anchorX="center" anchorY="middle">
         모세혈관 (Capillary)
-      </Text>
+      </Label>
 
       {/* Static Gases (Representing non-diffused remaining gases for density) */}
       <group position={[0.3, 0.3, 1]}>
@@ -171,9 +172,9 @@ const RespiratoryStage = () => {
               <meshBasicMaterial color={i % 2 === 0 ? "#00f3ff" : "#aaaaaa"} />
             </mesh>
           ))}
-          <Text position={[0, -3.5, 0]} fontSize={0.6} color="#39ff14" anchorX="center" anchorY="middle">
+          <Label position={[0, -3.5, 0]} fontSize={0.6} color="#39ff14" anchorX="center" anchorY="middle">
             ✅ 밀도(농도) 평형 도달! 기체 교환 완료!
-          </Text>
+          </Label>
         </group>
       )}
     </group>

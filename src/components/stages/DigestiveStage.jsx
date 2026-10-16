@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, MeshWobbleMaterial, Text, DragControls, Html } from '@react-three/drei';
+import { Sphere, MeshWobbleMaterial, DragControls, Html } from '@react-three/drei';
+import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
@@ -22,9 +23,9 @@ const TargetFood = ({ position, emoji, label, visible }) => {
           {emoji}
         </div>
       </Html>
-      <Text position={[0, -1.8, 0]} fontSize={0.3} color="white" anchorX="center" anchorY="middle">
+      <Label position={[0, -1.8, 0]} fontSize={0.3} color="white" anchorX="center" anchorY="middle">
         {label}
-      </Text>
+      </Label>
     </group>
   );
 };
@@ -65,9 +66,9 @@ const DraggableEnzyme = ({ position, color, label, onDrop }) => {
         <Sphere args={[0.4, 32, 32]}>
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />
         </Sphere>
-        <Text position={[0, -0.7, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
+        <Label position={[0, -0.7, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
           {label}
-        </Text>
+        </Label>
       </group>
     </DragControls>
   );
