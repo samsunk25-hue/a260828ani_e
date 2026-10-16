@@ -174,8 +174,8 @@ const RespiratoryStage = () => {
 
   const completeStage = () => {
     setTimeout(() => {
-      addToInventory({ id: 'oxygen', name: '산소', icon: '💨' });
-      addToInventory({ id: 'co2', name: '이산화탄소', icon: '☁️' });
+      addToInventory({ id: 'oxygen', name: '산소', icon: 'mol:o2' });
+      addToInventory({ id: 'co2', name: '이산화탄소', icon: 'mol:co2' });
     }, 500);
   };
 

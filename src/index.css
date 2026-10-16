@@ -507,7 +507,8 @@ button:disabled { cursor: not-allowed; }
   border-color: var(--accent-line);
   box-shadow: 0 10px 24px -10px var(--accent);
 }
-.item-icon { font-size: 1.7rem; line-height: 1; }
+.item-icon { display: grid; place-items: center; height: 30px; font-size: 1.7rem; line-height: 1; }
+.item-icon svg { display: block; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); }
 .item-name { font-size: 0.7rem; font-weight: 600; color: var(--text-2); text-align: center; line-height: 1.2; }
 .inventory-empty {
   display: flex;
