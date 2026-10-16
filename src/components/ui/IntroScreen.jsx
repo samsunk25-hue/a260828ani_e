@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Rocket, MousePointer2, Trophy, Medal, Leaf, Flame, Check } from 'lucide-react';
+import { Rocket, MousePointer2, Trophy, Medal, Leaf, Flame, Check, Lock, LockOpen } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatTime, formatDate } from '../../utils/time';
-import { rankRecords, MODE_LABEL } from '../../utils/ranking';
+import { rankRecords, MODE_LABEL, hasClearedEasy } from '../../utils/ranking';
 
 const systems = [
   { num: 1, label: '소화계', color: 'var(--orange)' },
@@ -115,9 +115,21 @@ const IntroScreen = () => {
   const leaderboard = useGameStore(state => state.leaderboard);
   const ready = nickname.trim().length > 0;
 
+  // 어려움 모드는 같은 별명으로 쉬움 모드를 통과한 뒤에만 도전할 수 있다
+  const hardUnlocked = hasClearedEasy(leaderboard, nickname);
+  const effectiveMode = mode === 'hard' && !hardUnlocked ? 'easy' : mode;
+  const isHard = effectiveMode === 'hard';
+
+  const pickMode = (id) => {
+    if (id === 'hard' && !hardUnlocked) return;
+    setMode(id);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (ready) startGame();
+    if (!ready) return;
+    if (mode !== effectiveMode) setMode(effectiveMode); // 잠긴 어려움 모드는 쉬움으로 시작
+    startGame();
   };
 
   return (
@@ -162,25 +174,41 @@ const IntroScreen = () => {
           <div className="mode-select" role="radiogroup" aria-label="난이도 선택">
             {MODES.map(m => {
               const Icon = m.icon;
-              const active = mode === m.id;
+              const active = effectiveMode === m.id;
+              const locked = m.id === 'hard' && !hardUnlocked;
               return (
                 <button
                   key={m.id}
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  className={`mode-card ${m.id} ${active ? 'active' : ''}`}
-                  onClick={() => setMode(m.id)}
+                  aria-disabled={locked}
+                  className={`mode-card ${m.id} ${active ? 'active' : ''} ${locked ? 'locked' : ''}`}
+                  onClick={() => pickMode(m.id)}
+                  title={locked ? '쉬움 모드를 먼저 통과하면 열립니다' : undefined}
                 >
                   <span className="mode-head">
                     <Icon size={16} />
                     <strong>{m.label}</strong>
                     <em>{m.tagline}</em>
-                    {active && <Check size={14} strokeWidth={3} className="mode-check" />}
+                    {locked ? (
+                      <Lock size={14} className="mode-check" />
+                    ) : active ? (
+                      <Check size={14} strokeWidth={3} className="mode-check" />
+                    ) : null}
                   </span>
                   <ul>
                     {m.points.map(p => <li key={p}>{p}</li>)}
                   </ul>
+                  {m.id === 'hard' && (
+                    <span className={`mode-lock-note ${locked ? '' : 'open'}`}>
+                      {locked ? (
+                        <><Lock size={11} /> 같은 별명으로 쉬움 모드를 통과하면 열려요</>
+                      ) : (
+                        <><LockOpen size={11} /> 쉬움 통과 확인됨 · 도전 가능</>
+                      )}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -196,9 +224,9 @@ const IntroScreen = () => {
               maxLength={16}
               autoFocus
             />
-            <button type="submit" className={`btn btn-primary btn-lg btn-block ${mode === 'hard' ? 'btn-hard' : ''}`} disabled={!ready}>
-              {mode === 'hard' ? <Flame size={18} /> : <Rocket size={18} />}
-              {mode === 'hard' ? '어려움 모드로 탐험 시작' : '쉬움 모드로 탐험 시작'}
+            <button type="submit" className={`btn btn-primary btn-lg btn-block ${isHard ? 'btn-hard' : ''}`} disabled={!ready}>
+              {isHard ? <Flame size={18} /> : <Rocket size={18} />}
+              {isHard ? '어려움 모드로 탐험 시작' : '쉬움 모드로 탐험 시작'}
             </button>
           </form>
 
@@ -214,7 +242,7 @@ const IntroScreen = () => {
           exit={{ y: -16, opacity: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: [0.2, 0.8, 0.2, 1] }}
         >
-          <RankingCard leaderboard={leaderboard} initialMode={mode} />
+          <RankingCard leaderboard={leaderboard} initialMode={effectiveMode} />
         </motion.div>
       </div>
     </motion.div>

@@ -404,6 +404,24 @@ button:disabled { cursor: not-allowed; }
   background: var(--mode);
   opacity: 0.8;
 }
+.mode-card.locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-style: dashed;
+}
+.mode-card.locked:hover { transform: none; border-color: var(--line-strong); }
+.mode-card.locked .mode-head { color: var(--text-3); }
+.mode-card.locked li::before { background: var(--text-3); }
+.mode-lock-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.mode-lock-note.open { color: var(--lime); }
 .btn-hard { --accent: var(--red); }
 
 .mode-badge {
