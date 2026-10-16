@@ -34,25 +34,67 @@ const Chamber = ({ position, color, label, isTarget }) => {
   );
 };
 
-const Organ = ({ position, color, label, isTarget }) => {
-  const mesh = useRef();
+const LungMaterial = React.forwardRef((props, ref) => (
+  <meshPhysicalMaterial
+    ref={ref}
+    color="#ff8fb1"
+    emissive="#ff3366"
+    emissiveIntensity={0.15}
+    roughness={0.5}
+    clearcoat={0.6}
+    clearcoatRoughness={0.3}
+    {...props}
+  />
+));
+
+// 폐: 기관 + 기관지 + 좌(2엽)/우(3엽) 폐. 숨쉬듯 부풀고, 목적지일 때 밝게 깜빡인다.
+const Lungs = ({ position, isTarget }) => {
+  const body = useRef();
+  const mats = useRef([]);
 
   useFrame((state) => {
-    mesh.current.rotation.y += 0.01;
-    if (isTarget) {
-      mesh.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 5) * 0.1);
-    } else {
-      mesh.current.scale.setScalar(1);
-    }
+    const t = state.clock.elapsedTime;
+    if (body.current) body.current.scale.setScalar(1 + Math.sin(t * 2) * 0.06);
+    const glow = isTarget ? 0.45 + Math.sin(t * 5) * 0.35 : 0.15;
+    mats.current.forEach(m => { if (m) m.emissiveIntensity = glow; });
   });
+
+  const lobe = (i, args, position, scale, rotation) => (
+    <Sphere key={i} args={args} position={position} scale={scale} rotation={rotation}>
+      <LungMaterial ref={el => { mats.current[i] = el; }} />
+    </Sphere>
+  );
 
   return (
     <group position={position}>
-      <Sphere ref={mesh} args={[1.5, 32, 32]}>
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
-      </Sphere>
-      <Label position={[0, -2, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
-        {label}
+      <group ref={body}>
+        {/* 기관 (Trachea) */}
+        <mesh position={[0, 1.15, 0]}>
+          <cylinderGeometry args={[0.17, 0.17, 1.0, 16]} />
+          <meshStandardMaterial color="#ffd6e0" roughness={0.7} />
+        </mesh>
+        {/* 기관지 (Bronchi) */}
+        <mesh position={[-0.42, 0.5, 0]} rotation={[0, 0, 0.7]}>
+          <cylinderGeometry args={[0.11, 0.11, 0.9, 12]} />
+          <meshStandardMaterial color="#ffd6e0" roughness={0.7} />
+        </mesh>
+        <mesh position={[0.42, 0.5, 0]} rotation={[0, 0, -0.7]}>
+          <cylinderGeometry args={[0.11, 0.11, 0.9, 12]} />
+          <meshStandardMaterial color="#ffd6e0" roughness={0.7} />
+        </mesh>
+
+        {/* 좌폐 (화면 왼쪽, 2엽) */}
+        {lobe(0, [0.75, 32, 32], [-1.0, 0.1, 0], [0.9, 1.3, 0.75], [0, 0, 0.2])}
+        {lobe(1, [0.7, 32, 32], [-1.15, -0.9, 0], [1, 1.1, 0.75], [0, 0, 0.1])}
+        {/* 우폐 (화면 오른쪽, 3엽) */}
+        {lobe(2, [0.72, 32, 32], [1.0, 0.25, 0], [0.9, 1.2, 0.75], [0, 0, -0.2])}
+        {lobe(3, [0.7, 32, 32], [1.15, -0.5, 0.1], [1, 1, 0.75], [0, 0, -0.1])}
+        {lobe(4, [0.7, 32, 32], [1.2, -1.1, 0], [1, 1.05, 0.75], [0, 0, -0.1])}
+      </group>
+
+      {/* 라벨은 심장 상자 앞(z+)에 두어 가려지지 않게 한다 */}
+      <Label position={[0, -2.15, 2.5]} fontSize={0.4} color="white" outlineWidth={0.03} outlineColor="#000000">
+        폐 (기체 교환: CO2 → O2)
       </Label>
     </group>
   );
@@ -266,7 +308,7 @@ const CirculatoryStage = () => {
       </mesh>
 
       {/* Lungs (Top) */}
-      <Organ position={pathNodes[0].pos} color="#ffb3c6" label="폐 (기체 교환)" isTarget={step === 5} />
+      <Lungs position={[0, 4.9, 0]} isTarget={step === 5} />
 
       {/* Heart Structure (Center) */}
       <group position={[0, 0, 0]}>
