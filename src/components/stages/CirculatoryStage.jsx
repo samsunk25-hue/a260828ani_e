@@ -232,6 +232,11 @@ const DraggableBlood = ({ position, isOxygenated, onDrop }) => {
 
 const CirculatoryStage = () => {
   const addToInventory = useGameStore(state => state.addToInventory);
+  const mode = useGameStore(state => state.mode);
+  const registerHit = useGameStore(state => state.registerHit);
+  const registerMiss = useGameStore(state => state.registerMiss);
+  // 어려움 모드에서는 다음 목적지를 깜빡여 알려주지 않는다
+  const guide = mode !== 'hard';
 
   // sequence: 0: Lungs -> 1: LA -> 2: LV -> 3: Body -> 4: RA -> 5: RV -> 6: Lungs (End)
   const [step, setStep] = useState(0);
@@ -275,6 +280,7 @@ const CirculatoryStage = () => {
       // Update blood position slightly in front of the target so it's visible
       setBloodPos([targetNode.pos[0], targetNode.pos[1], BLOOD_Z]);
       showFeedback(`✅ ${targetNode.label} 도착 성공!`, "#39ff14");
+      registerHit();
 
       // Special events at Body (Cells)
       if (nextStep === 3) {
@@ -288,6 +294,7 @@ const CirculatoryStage = () => {
       }
     } else {
       resetPos();
+      registerMiss();
       showFeedback(`❌ 올바른 순환 경로가 아닙니다! (피는 역류할 수 없습니다)`, "#ff3366");
     }
   };
@@ -301,17 +308,17 @@ const CirculatoryStage = () => {
       </mesh>
 
       {/* Lungs (Top) */}
-      <Lungs position={[0, 4.9, 0]} isTarget={step === 5} />
+      <Lungs position={[0, 4.9, 0]} isTarget={guide && step === 5} />
 
       {/* Heart Structure (Center) */}
       <group position={[0, 0, 0]}>
         {/* Right Side of Heart (Left on screen) - Deoxygenated */}
-        <Chamber position={pathNodes[4].pos} color="#2244ff" label="우심방" isTarget={step === 3} />
-        <Chamber position={pathNodes[5].pos} color="#1122aa" label="우심실" isTarget={step === 4} />
+        <Chamber position={pathNodes[4].pos} color="#2244ff" label="우심방" isTarget={guide && step === 3} />
+        <Chamber position={pathNodes[5].pos} color="#1122aa" label="우심실" isTarget={guide && step === 4} />
 
         {/* Left Side of Heart (Right on screen) - Oxygenated */}
-        <Chamber position={pathNodes[1].pos} color="#ff4422" label="좌심방" isTarget={step === 0} />
-        <Chamber position={pathNodes[2].pos} color="#aa2211" label="좌심실" isTarget={step === 1} />
+        <Chamber position={pathNodes[1].pos} color="#ff4422" label="좌심방" isTarget={guide && step === 0} />
+        <Chamber position={pathNodes[2].pos} color="#aa2211" label="좌심실" isTarget={guide && step === 1} />
 
         {/* Heart separator (Septum) */}
         <mesh position={[0, 0, 0]}>
@@ -321,7 +328,7 @@ const CirculatoryStage = () => {
       </group>
 
       {/* Body Cells / Mitochondria (Bottom) */}
-      <AnimalCell position={pathNodes[3].pos} label="온몸의 세포 (미토콘드리아)" isTarget={step === 2} />
+      <AnimalCell position={pathNodes[3].pos} label="온몸의 세포 (미토콘드리아)" isTarget={guide && step === 2} />
 
       {/* Draggable Blood Token */}
       {step < 6 && (

@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TriangleAlert, Bot, Sparkles, DoorOpen, Trophy, Palette, Copy, Check, Loader2, Home } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
-
-const pad = (n) => String(n).padStart(2, '0');
-const formatTime = (ms) => {
-  if (!ms) return '00:00.00';
-  const totalSeconds = Math.floor(ms / 1000);
-  return `${pad(Math.floor(totalSeconds / 60))}:${pad(totalSeconds % 60)}.${pad(Math.floor((ms % 1000) / 10))}`;
-};
+import { formatTime } from '../../utils/time';
+import { rankRecords, MODE_LABEL } from '../../utils/ranking';
 
 const keywords = ['세포호흡', '산소와 영양소', '이산화탄소와 노폐물', '에너지', '생명 활동'];
 
@@ -29,7 +24,9 @@ const feedbackMessages = {
 };
 
 const PostGameAssessment = () => {
-  const { inventory, finishGame, finalTime, leaderboard, resetGame } = useGameStore();
+  const { inventory, finishGame, finalTime, finalScore, leaderboard, resetGame, mode } = useGameStore();
+  const isHard = mode === 'hard';
+  const ranked = rankRecords(leaderboard, mode);
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState(null); // { ok: boolean, body: string }
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,18 +166,25 @@ const PostGameAssessment = () => {
             style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
           >
             <section className="result-card gold">
-              <h2><Trophy size={18} /> 명예의 전당 · 탈출 기록</h2>
+              <h2><Trophy size={18} /> 명예의 전당 · {MODE_LABEL[mode]} 모드</h2>
+              {isHard && finalScore != null && (
+                <p className="final-score">
+                  최종 점수 <strong>{finalScore.toLocaleString()}점</strong>
+                  <span>(행동 점수 + 남은 생명력 보너스 + 시간 보너스)</span>
+                </p>
+              )}
               <div className="leaderboard">
                 <table>
                   <thead>
                     <tr>
                       <th>순위</th>
                       <th>탐험대원</th>
+                      {isHard && <th className="right">점수</th>}
                       <th className="right">탈출 시간</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {leaderboard.map((record, index) => (
+                    {ranked.map((record, index) => (
                       <tr key={`${record.date}-${index}`} className={record.time === finalTime ? 'me' : ''}>
                         <td>
                           <span className="rank">
@@ -189,6 +193,7 @@ const PostGameAssessment = () => {
                           </span>
                         </td>
                         <td>{record.nickname || '이름 없음'}</td>
+                        {isHard && <td className="right mono">{(record.score ?? 0).toLocaleString()}</td>}
                         <td className="right mono">{formatTime(record.time)}</td>
                       </tr>
                     ))}

@@ -5,10 +5,17 @@ import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
-// 원자 색 (교과서 분자 모형 관례: 산소 빨강, 탄소 검정)
+// 원자 색 (교과서 분자 모형 관례: 산소 빨강, 탄소 검정, 질소 파랑)
 const ATOM = {
   O: { color: '#ff4d4d', emissive: '#ff1a1a', radius: 0.28 },
   C: { color: '#3a3a3a', emissive: '#111111', radius: 0.32 },
+  N: { color: '#4d7cff', emissive: '#1a3dff', radius: 0.28 },
+};
+
+const GAS_INFO = {
+  o2: { ko: '산소', formula: 'O2' },
+  co2: { ko: '이산화탄소', formula: 'CO2' },
+  n2: { ko: '질소', formula: 'N2' },
 };
 
 const Atom = ({ type, position }) => {
@@ -20,8 +27,9 @@ const Atom = ({ type, position }) => {
   );
 };
 
-// 이중 결합: 두 원자 사이를 잇는 가는 막대 두 개
-const DoubleBond = ({ from, to }) => {
+// 결합: 두 원자 사이를 잇는 가는 막대 (count=2 이중, 3 삼중)
+const BOND_OFFSETS = { 1: [0], 2: [-0.07, 0.07], 3: [-0.11, 0, 0.11] };
+const DoubleBond = ({ from, to, count = 2 }) => {
   const a = new THREE.Vector3(...from);
   const b = new THREE.Vector3(...to);
   const mid = a.clone().add(b).multiplyScalar(0.5);
@@ -32,7 +40,7 @@ const DoubleBond = ({ from, to }) => {
   );
   return (
     <group position={mid} quaternion={quat}>
-      {[-0.07, 0.07].map((z, i) => (
+      {(BOND_OFFSETS[count] || BOND_OFFSETS[2]).map((z, i) => (
         <mesh key={i} position={[0, 0, z]}>
           <cylinderGeometry args={[0.045, 0.045, len, 10]} />
           <meshStandardMaterial color="#f2f2f2" emissive="#ffffff" emissiveIntensity={0.3} />
@@ -41,6 +49,15 @@ const DoubleBond = ({ from, to }) => {
     </group>
   );
 };
+
+// N≡N (어려움 모드의 함정 기체: 교환되지 않는다)
+const N2Molecule = () => (
+  <group>
+    <DoubleBond from={[-0.26, 0, 0]} to={[0.26, 0, 0]} count={3} />
+    <Atom type="N" position={[-0.26, 0, 0]} />
+    <Atom type="N" position={[0.26, 0, 0]} />
+  </group>
+);
 
 // O=O
 const O2Molecule = () => (
@@ -62,17 +79,19 @@ const CO2Molecule = () => (
   </group>
 );
 
-// 천천히 회전하는 분자 (라벨 포함)
-const Molecule = ({ kind, position, label, showLabel = true }) => {
+// 천천히 회전하는 분자 (라벨 포함). 어려움 모드에서는 화학식만 표시한다.
+const Molecule = ({ kind, position, showLabel = true }) => {
+  const mode = useGameStore(state => state.mode);
   const spin = useRef();
   useFrame((_, delta) => {
     if (spin.current) spin.current.rotation.y += delta * 0.6;
   });
-  const isO2 = kind === 'o2';
+  const info = GAS_INFO[kind];
+  const label = mode === 'hard' ? info.formula : `${info.ko} ${info.formula}`;
   return (
     <group position={position}>
       <group ref={spin} rotation={[0.25, 0, 0]}>
-        {isO2 ? <O2Molecule /> : <CO2Molecule />}
+        {kind === 'o2' ? <O2Molecule /> : kind === 'n2' ? <N2Molecule /> : <CO2Molecule />}
       </group>
       {showLabel && (
         <Label
@@ -82,7 +101,7 @@ const Molecule = ({ kind, position, label, showLabel = true }) => {
           outlineWidth={0.035}
           outlineColor="#000000"
         >
-          {label ?? (isO2 ? '산소 O2' : '이산화탄소 CO2')}
+          {label}
         </Label>
       )}
     </group>
@@ -144,31 +163,34 @@ const DraggableGas = ({ id, kind, initialPosition, onDrop }) => {
 
 const RespiratoryStage = () => {
   const addToInventory = useGameStore(state => state.addToInventory);
+  const mode = useGameStore(state => state.mode);
+  const registerHit = useGameStore(state => state.registerHit);
+  const registerMiss = useGameStore(state => state.registerMiss);
+  const isHard = mode === 'hard';
   const [placed, setPlaced] = useState({ o2_1: false, o2_2: false, co2_1: false, co2_2: false });
 
   const handleDrop = (id, position) => {
     // 토큰을 카메라 쪽(z 앞)으로 빼 두었으므로 판정은 화면 평면(x, y) 거리만 본다
     const distFromCenter = Math.hypot(position.x, position.y);
+    let ok = false;
 
     if (id.startsWith('o2')) {
-      if (distFromCenter > 3.0) {
-        setPlaced(prev => {
-          const next = { ...prev, [id]: true };
-          if (next.o2_1 && next.o2_2 && next.co2_1 && next.co2_2) completeStage();
-          return next;
-        });
-        return true;
-      }
+      ok = distFromCenter > 3.0;
     } else if (id.startsWith('co2')) {
-      if (distFromCenter < 2.5) {
-        setPlaced(prev => {
-          const next = { ...prev, [id]: true };
-          if (next.o2_1 && next.o2_2 && next.co2_1 && next.co2_2) completeStage();
-          return next;
-        });
-        return true;
-      }
+      ok = distFromCenter < 2.5;
     }
+    // 질소(n2)는 교환되지 않는 기체: 어디로 옮겨도 실수
+
+    if (ok) {
+      setPlaced(prev => {
+        const next = { ...prev, [id]: true };
+        if (next.o2_1 && next.o2_2 && next.co2_1 && next.co2_2) completeStage();
+        return next;
+      });
+      registerHit();
+      return true;
+    }
+    registerMiss();
     return false;
   };
 
@@ -209,6 +231,10 @@ const RespiratoryStage = () => {
 
       {!placed.co2_1 && <DraggableGas id="co2_1" kind="co2" initialPosition={[4.6, 0.2, 1.6]} onDrop={handleDrop} />}
       {!placed.co2_2 && <DraggableGas id="co2_2" kind="co2" initialPosition={[3.8, 1.7, 1.6]} onDrop={handleDrop} />}
+
+      {/* 어려움 모드 함정: 질소는 폐포와 혈액 사이에서 교환되지 않는다 */}
+      {isHard && <DraggableGas id="n2_1" kind="n2" initialPosition={[-1.4, 1.2, 3.1]} onDrop={handleDrop} />}
+      {isHard && <DraggableGas id="n2_2" kind="n2" initialPosition={[5.4, -1.4, 1.6]} onDrop={handleDrop} />}
 
       {/* Success Visual Feedback: 도착한 쪽에 분자가 남는다 */}
       {placed.o2_1 && <Molecule kind="o2" position={[4.5, 1.0, 1.6]} showLabel={false} />}

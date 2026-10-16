@@ -74,9 +74,18 @@ const DraggableEnzyme = ({ position, color, label, onDrop }) => {
   );
 };
 
+const ENZYME_LABELS = {
+  easy: { amylase: '아밀레이스', pepsin: '펩신', trypsin: '트립신', bile: '쓸개즙', lipase: '라이페이스' },
+  hard: { amylase: 'Amylase', pepsin: 'Pepsin', trypsin: 'Trypsin', bile: 'Bile', lipase: 'Lipase' },
+};
+
 const DigestiveStage = () => {
   const addToInventory = useGameStore(state => state.addToInventory);
-  
+  const mode = useGameStore(state => state.mode);
+  const registerHit = useGameStore(state => state.registerHit);
+  const registerMiss = useGameStore(state => state.registerMiss);
+  const L = ENZYME_LABELS[mode] || ENZYME_LABELS.easy;
+
   const [molecules, setMolecules] = useState({
     starch: { step: 0, visible: true, position: [-4, 0, 0] }, // step 0: 녹말, step 1: 엿당
     protein: { step: 0, visible: true, position: [0, 0, 0] }, // step 0: 단백질, step 1: 폴리펩타이드
@@ -91,11 +100,16 @@ const DigestiveStage = () => {
   const handleDrop = (enzymeType, dropPosition) => {
     const dropVec = new THREE.Vector3(dropPosition.x, dropPosition.y, 0);
     const state = moleculesRef.current;
-    
+    let hit = false;      // 올바른 효소로 분해가 일어남
+    let onFood = false;   // 어떤 음식물 위에 떨어뜨리긴 함
+
+    const nearFood = (m) => m.visible && dropVec.distanceTo(new THREE.Vector3(m.position[0], m.position[1], 0)) < 4.0;
+
     // Starch Logic (아밀레이스 -> 아밀레이스)
-    if (state.starch.visible) {
-      const targetPos = new THREE.Vector3(state.starch.position[0], state.starch.position[1], 0);
-      if (dropVec.distanceTo(targetPos) < 4.0 && enzymeType === 'amylase') {
+    if (nearFood(state.starch)) {
+      onFood = true;
+      if (enzymeType === 'amylase') {
+        hit = true;
         if (state.starch.step === 0) {
           setMolecules(prev => ({ ...prev, starch: { ...prev.starch, step: 1 } }));
         } else if (state.starch.step === 1) {
@@ -106,30 +120,34 @@ const DigestiveStage = () => {
     }
 
     // Protein Logic (펩신 -> 트립신)
-    if (state.protein.visible) {
-      const targetPos = new THREE.Vector3(state.protein.position[0], state.protein.position[1], 0);
-      if (dropVec.distanceTo(targetPos) < 4.0) {
-        if (enzymeType === 'pepsin' && state.protein.step === 0) {
-          setMolecules(prev => ({ ...prev, protein: { ...prev.protein, step: 1 } }));
-        } else if (enzymeType === 'trypsin' && state.protein.step === 1) {
-          setMolecules(prev => ({ ...prev, protein: { ...prev.protein, visible: false } }));
-          addToInventory({ id: 'amino_acid', name: '아미노산', icon: '🥓' });
-        }
+    if (nearFood(state.protein)) {
+      onFood = true;
+      if (enzymeType === 'pepsin' && state.protein.step === 0) {
+        hit = true;
+        setMolecules(prev => ({ ...prev, protein: { ...prev.protein, step: 1 } }));
+      } else if (enzymeType === 'trypsin' && state.protein.step === 1) {
+        hit = true;
+        setMolecules(prev => ({ ...prev, protein: { ...prev.protein, visible: false } }));
+        addToInventory({ id: 'amino_acid', name: '아미노산', icon: '🥓' });
       }
     }
 
     // Fat Logic (쓸개즙 -> 라이페이스)
-    if (state.fat.visible) {
-      const targetPos = new THREE.Vector3(state.fat.position[0], state.fat.position[1], 0);
-      if (dropVec.distanceTo(targetPos) < 4.0) {
-        if (enzymeType === 'bile' && state.fat.step === 0) {
-          setMolecules(prev => ({ ...prev, fat: { ...prev.fat, step: 1 } }));
-        } else if (enzymeType === 'lipase' && state.fat.step === 1) {
-          setMolecules(prev => ({ ...prev, fat: { ...prev.fat, visible: false } }));
-          addToInventory({ id: 'fatty_acid', name: '지방산', icon: '🧀' });
-        }
+    if (nearFood(state.fat)) {
+      onFood = true;
+      if (enzymeType === 'bile' && state.fat.step === 0) {
+        hit = true;
+        setMolecules(prev => ({ ...prev, fat: { ...prev.fat, step: 1 } }));
+      } else if (enzymeType === 'lipase' && state.fat.step === 1) {
+        hit = true;
+        setMolecules(prev => ({ ...prev, fat: { ...prev.fat, visible: false } }));
+        addToInventory({ id: 'fatty_acid', name: '지방산', icon: '🧀' });
       }
     }
+
+    // 어려움 모드 점수/패널티 (쉬움 모드에서는 store가 무시한다). 빈 곳에 놓은 건 실수로 치지 않는다.
+    if (hit) registerHit();
+    else if (onFood) registerMiss();
   };
 
   return (
@@ -165,42 +183,42 @@ const DigestiveStage = () => {
         key={`amylase1-${molecules.starch.step}`}
         position={[-6.25, 3.5, 0]} 
         color="#39ff14" 
-        label="아밀레이스" 
+        label={L.amylase} 
         onDrop={(pos) => handleDrop('amylase', pos)} 
       />
       <DraggableEnzyme 
         key={`amylase2-${molecules.starch.step}`}
         position={[-3.75, 3.5, 0]} 
         color="#39ff14" 
-        label="아밀레이스" 
+        label={L.amylase} 
         onDrop={(pos) => handleDrop('amylase', pos)} 
       />
       <DraggableEnzyme 
         key={`pepsin-${molecules.protein.step}`}
         position={[-1.25, 3.5, 0]} 
         color="#ff3366" 
-        label="펩신" 
+        label={L.pepsin} 
         onDrop={(pos) => handleDrop('pepsin', pos)} 
       />
       <DraggableEnzyme 
         key={`trypsin-${molecules.protein.step}`}
         position={[1.25, 3.5, 0]} 
         color="#00ccff" 
-        label="트립신" 
+        label={L.trypsin} 
         onDrop={(pos) => handleDrop('trypsin', pos)} 
       />
       <DraggableEnzyme 
         key={`bile-${molecules.fat.step}`}
         position={[3.75, 3.5, 0]} 
         color="#adff2f" 
-        label="쓸개즙" 
+        label={L.bile} 
         onDrop={(pos) => handleDrop('bile', pos)} 
       />
       <DraggableEnzyme 
         key={`lipase-${molecules.fat.step}`}
         position={[6.25, 3.5, 0]} 
         color="#ffcc00" 
-        label="라이페이스" 
+        label={L.lipase} 
         onDrop={(pos) => handleDrop('lipase', pos)} 
       />
     </group>

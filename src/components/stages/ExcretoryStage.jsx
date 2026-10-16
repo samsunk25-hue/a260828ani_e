@@ -104,6 +104,22 @@ const Ball = ({ size, color }) => (
   </Sphere>
 );
 
+// 적혈구: 가운데가 오목한 원반 느낌 (어려움 모드 함정 물질, 여과되지 않는다)
+const Disc = ({ size, color }) => (
+  <group rotation={[Math.PI / 2, 0, 0]}>
+    <mesh>
+      <torusGeometry args={[size * 0.62, size * 0.38, 12, 32]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} roughness={0.5} />
+    </mesh>
+    <mesh>
+      <cylinderGeometry args={[size * 0.65, size * 0.65, size * 0.3, 32]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} roughness={0.5} />
+    </mesh>
+  </group>
+);
+
+const SHAPES = { ball: Ball, hexagon: Hexagon, disc: Disc };
+
 /**
  * 드래그 가능한 분자.
  * DragControls는 자기 래퍼 그룹의 matrix를 직접 움직이므로, 드롭이 끝날 때마다 key를 바꿔
@@ -133,7 +149,7 @@ const DraggableMolecule = ({ id, position, color, label, size, shape = 'ball', o
       onDragEnd={handleDragEnd}
     >
       <group position={position} ref={mesh}>
-        {shape === 'hexagon' ? <Hexagon size={size} color={color} /> : <Ball size={size} color={color} />}
+        {React.createElement(SHAPES[shape] || Ball, { size, color })}
         <Label position={[0, -size - 0.32, 0.3]} fontSize={0.25} color="white" outlineWidth={0.03} outlineColor="#000000">
           {label}
         </Label>
@@ -159,6 +175,10 @@ const Zone = ({ center, color }) => (
 
 const ExcretoryStage = () => {
   const addToInventory = useGameStore(state => state.addToInventory);
+  const mode = useGameStore(state => state.mode);
+  const registerHit = useGameStore(state => state.registerHit);
+  const registerMiss = useGameStore(state => state.registerMiss);
+  const isHard = mode === 'hard';
 
   // phase 0: 여과(Filtration), phase 1: 재흡수(Reabsorption), phase 2: 완료(Complete)
   const [phase, setPhase] = useState(0);
@@ -167,27 +187,39 @@ const ExcretoryStage = () => {
   const [protein, setProtein] = useState({ pos: [-7.8, 1.7, MOL_Z], status: 'blood' });
   const [glucose, setGlucose] = useState({ pos: [-6.5, 1.6, MOL_Z], status: 'blood' });
   const [urea, setUrea] = useState({ pos: [-5.5, 1.5, MOL_Z], status: 'blood' });
+  // 어려움 모드 함정: 적혈구도 단백질처럼 여과되지 않고 혈관에 남아야 한다
+  const [rbc, setRbc] = useState({ pos: [-7.0, 0.6, MOL_Z], status: 'blood' });
 
-  const near = (dropVec, [x, y], r = 1.7) => dropVec.distanceTo(V(x, y)) < r;
+  const near = (dropVec, [x, y], r = isHard ? 1.4 : 1.7) => dropVec.distanceTo(V(x, y)) < r;
 
   const handleDrop = (id, dropPos) => {
-    const dropVec = V(dropPos.x, dropPos.y);
+    const ok = judgeDrop(id, V(dropPos.x, dropPos.y));
+    if (ok) registerHit();
+    else registerMiss();
+    return ok;
+  };
 
+  const judgeDrop = (id, dropVec) => {
     if (phase === 0) {
-      // 1. 여과: 단백질은 혈관에 남고, 포도당과 요소는 보먼주머니로
+      // 1. 여과: 단백질(과 적혈구)은 혈관에 남고, 포도당과 요소는 보먼주머니로
       if (id === 'protein' && near(dropVec, ZONE.bloodVessel)) {
         setProtein({ pos: [-2.2, 1.4, MOL_Z], status: 'filtered' });
-        checkPhase0Complete(true, glucose.status === 'filtered', urea.status === 'filtered');
+        checkPhase0Complete({ protein: true });
+        return true;
+      }
+      if (id === 'rbc' && near(dropVec, ZONE.bloodVessel)) {
+        setRbc({ pos: [-1.3, 0.5, MOL_Z], status: 'filtered' });
+        checkPhase0Complete({ rbc: true });
         return true;
       }
       if (id === 'glucose' && near(dropVec, ZONE.bowman)) {
         setGlucose({ pos: [-2.3, TUBULE_Y, MOL_Z], status: 'filtered' });
-        checkPhase0Complete(protein.status === 'filtered', true, urea.status === 'filtered');
+        checkPhase0Complete({ glucose: true });
         return true;
       }
       if (id === 'urea' && near(dropVec, ZONE.bowman)) {
         setUrea({ pos: [-1.2, TUBULE_Y, MOL_Z], status: 'filtered' });
-        checkPhase0Complete(protein.status === 'filtered', glucose.status === 'filtered', true);
+        checkPhase0Complete({ urea: true });
         return true;
       }
     } else if (phase === 1) {
@@ -206,8 +238,15 @@ const ExcretoryStage = () => {
     return false; // 잘못된 이동 → 리마운트되며 원래 자리로 돌아간다
   };
 
-  const checkPhase0Complete = (p, g, u) => {
-    if (p && g && u) setTimeout(() => setPhase(1), 1000);
+  const checkPhase0Complete = (just) => {
+    const done = {
+      protein: protein.status === 'filtered',
+      glucose: glucose.status === 'filtered',
+      urea: urea.status === 'filtered',
+      rbc: !isHard || rbc.status === 'filtered',
+      ...just,
+    };
+    if (done.protein && done.glucose && done.urea && done.rbc) setTimeout(() => setPhase(1), 1000);
   };
 
   const checkPhase1Complete = (g, u) => {
@@ -242,15 +281,18 @@ const ExcretoryStage = () => {
       <DraggableMolecule id="protein" position={protein.pos} color="#2255ff" label="단백질" size={0.5} onDrop={handleDrop} disabled={protein.status !== 'blood'} />
       <DraggableMolecule id="glucose" position={glucose.pos} color="#ffcc00" label="포도당" size={0.34} shape="hexagon" onDrop={handleDrop} disabled={glucose.status === 'reabsorbed' || (phase === 0 && glucose.status === 'filtered')} />
       <DraggableMolecule id="urea" position={urea.pos} color="#bbbbbb" label="요소" size={0.2} onDrop={handleDrop} disabled={urea.status === 'excreted' || (phase === 0 && urea.status === 'filtered')} />
+      {isHard && (
+        <DraggableMolecule id="rbc" position={rbc.pos} color="#d8203a" label="적혈구" size={0.4} shape="disc" onDrop={handleDrop} disabled={rbc.status !== 'blood'} />
+      )}
 
-      {/* Target Highlights based on Phase */}
-      {phase === 0 && (
+      {/* Target Highlights based on Phase (쉬움 모드에서만 표시) */}
+      {!isHard && phase === 0 && (
         <group>
           <Zone center={ZONE.bloodVessel} color="#2255ff" />
           <Zone center={ZONE.bowman} color="#ffcc00" />
         </group>
       )}
-      {phase === 1 && (
+      {!isHard && phase === 1 && (
         <group>
           <Zone center={ZONE.capillary} color="#ffcc00" />
           <Zone center={ZONE.excretion} color="#bbbbbb" />

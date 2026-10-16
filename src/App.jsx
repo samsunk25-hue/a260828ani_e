@@ -10,14 +10,19 @@ import MissionOverlay from './components/ui/MissionOverlay';
 import PostGameAssessment from './components/ui/PostGameAssessment';
 import TimerDisplay from './components/ui/TimerDisplay';
 import StageProgress from './components/ui/StageProgress';
+import VitalityBar from './components/ui/VitalityBar';
+import GameOverScreen from './components/ui/GameOverScreen';
 
 function App() {
   const currentStage = useGameStore(state => state.currentStage);
+  const mode = useGameStore(state => state.mode);
+  const isGameOver = useGameStore(state => state.isGameOver);
   const resetView = useGameStore(state => state.resetView);
   const inGame = currentStage !== 'intro' && currentStage !== 'post-game';
+  const isHard = mode === 'hard';
 
   return (
-    <div className="app" data-stage={currentStage}>
+    <div className="app" data-stage={currentStage} data-mode={mode}>
       <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
         <MainScene />
       </Canvas>
@@ -41,6 +46,7 @@ function App() {
               </div>
               <div className="hud-status">
                 <TimerDisplay />
+                {isHard && <VitalityBar />}
                 <StageProgress />
                 <button type="button" className="btn btn-ghost view-reset" onClick={resetView} title="카메라를 처음 위치로">
                   <RotateCcw size={14} />
@@ -54,6 +60,10 @@ function App() {
           )}
 
           {currentStage === 'post-game' && <PostGameAssessment key="post-game" />}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isHard && isGameOver && <GameOverScreen key="gameover" />}
         </AnimatePresence>
       </div>
     </div>
