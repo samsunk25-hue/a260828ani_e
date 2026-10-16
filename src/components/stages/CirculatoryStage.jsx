@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Box, Sphere, DragControls, MeshDistortMaterial } from '@react-three/drei';
 import Label from '../scene/Label';
@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 const Chamber = ({ position, color, label, isTarget }) => {
   const mesh = useRef();
-  
+
   useFrame((state) => {
     if (isTarget) {
       mesh.current.material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 5) * 0.5;
@@ -19,9 +19,9 @@ const Chamber = ({ position, color, label, isTarget }) => {
   return (
     <group position={position}>
       <Box ref={mesh} args={[2.8, 2.8, 2.8]}>
-        <meshStandardMaterial 
-          color={color} 
-          transparent opacity={0.3} 
+        <meshStandardMaterial
+          color={color}
+          transparent opacity={0.3}
           emissive={color}
           roughness={0.2}
           depthWrite={false}
@@ -198,32 +198,25 @@ const DraggableBlood = ({ position, isOxygenated, onDrop }) => {
   const setIsDragging = useGameStore(state => state.setIsDragging);
   const mesh = useRef();
 
-  // 마운트 시에만 시작 위치를 적용한다 (DragControls가 matrix를 직접 조작하므로
-  // React prop으로 position을 주면 드래그 중 충돌이 생긴다).
-  useEffect(() => {
-    if (mesh.current) mesh.current.position.set(...position);
-  }, [position]);
+  const [round, setRound] = useState(0);
 
   const handleDragEnd = () => {
     setIsDragging(false);
     if (mesh.current) {
       const worldPos = new THREE.Vector3();
       mesh.current.getWorldPosition(worldPos);
-      
-      onDrop(worldPos, () => {
-        // Fallback: reset position if wrong
-        mesh.current.position.set(...position);
-      });
+      // 잘못된 경로면 DragControls를 리마운트해 원래 자리로 되돌린다 (성공 시엔 부모가 key를 바꿔 리마운트)
+      onDrop(worldPos, () => setRound(r => r + 1));
     }
   };
 
   return (
-    <DragControls onDragStart={() => setIsDragging(true)} onDragEnd={handleDragEnd}>
-      <group ref={mesh}>
+    <DragControls key={round} dragLimits={[undefined, undefined, [0, 0]]} onDragStart={() => setIsDragging(true)} onDragEnd={handleDragEnd}>
+      <group ref={mesh} position={position}>
         <Sphere args={[0.5, 32, 32]}>
-          <meshStandardMaterial 
-            color={isOxygenated ? "#ff1133" : "#1133ff"} 
-            emissive={isOxygenated ? "#ff1133" : "#1133ff"} 
+          <meshStandardMaterial
+            color={isOxygenated ? "#ff1133" : "#1133ff"}
+            emissive={isOxygenated ? "#ff1133" : "#1133ff"}
             emissiveIntensity={0.8}
             metalness={0.8}
             roughness={0.2}
@@ -239,7 +232,7 @@ const DraggableBlood = ({ position, isOxygenated, onDrop }) => {
 
 const CirculatoryStage = () => {
   const addToInventory = useGameStore(state => state.addToInventory);
-  
+
   // sequence: 0: Lungs -> 1: LA -> 2: LV -> 3: Body -> 4: RA -> 5: RV -> 6: Lungs (End)
   const [step, setStep] = useState(0);
   // 심방/심실 박스 앞면(z≈1.4)보다 앞에 두어 토큰이 항상 가려지지 않게 한다
@@ -270,7 +263,7 @@ const CirculatoryStage = () => {
 
     const targetNode = pathNodes[step === 6 ? 0 : step + 1];
     const targetVec = new THREE.Vector3(...targetNode.pos);
-    
+
     // Ignore Z for 2D-like dragging accuracy
     const dropVec = new THREE.Vector3(dropPos.x, dropPos.y, 0);
 
@@ -278,7 +271,7 @@ const CirculatoryStage = () => {
       // Success! Move to next step
       const nextStep = step + 1;
       setStep(nextStep);
-      
+
       // Update blood position slightly in front of the target so it's visible
       setBloodPos([targetNode.pos[0], targetNode.pos[1], BLOOD_Z]);
       showFeedback(`✅ ${targetNode.label} 도착 성공!`, "#39ff14");
@@ -315,11 +308,11 @@ const CirculatoryStage = () => {
         {/* Right Side of Heart (Left on screen) - Deoxygenated */}
         <Chamber position={pathNodes[4].pos} color="#2244ff" label="우심방" isTarget={step === 3} />
         <Chamber position={pathNodes[5].pos} color="#1122aa" label="우심실" isTarget={step === 4} />
-        
+
         {/* Left Side of Heart (Right on screen) - Oxygenated */}
         <Chamber position={pathNodes[1].pos} color="#ff4422" label="좌심방" isTarget={step === 0} />
         <Chamber position={pathNodes[2].pos} color="#aa2211" label="좌심실" isTarget={step === 1} />
-        
+
         {/* Heart separator (Septum) */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[0.4, 6, 3]} />
@@ -332,11 +325,11 @@ const CirculatoryStage = () => {
 
       {/* Draggable Blood Token */}
       {step < 6 && (
-        <DraggableBlood 
+        <DraggableBlood
           key={`blood-${step}`}
-          position={bloodPos} 
-          isOxygenated={isOxygenated} 
-          onDrop={handleDrop} 
+          position={bloodPos}
+          isOxygenated={isOxygenated}
+          onDrop={handleDrop}
         />
       )}
 

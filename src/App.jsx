@@ -1,6 +1,7 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { AnimatePresence, motion } from 'framer-motion';
+import { RotateCcw } from 'lucide-react';
 import { useGameStore } from './store/useGameStore';
 import MainScene from './components/scene/MainScene';
 import IntroScreen from './components/ui/IntroScreen';
@@ -12,6 +13,7 @@ import StageProgress from './components/ui/StageProgress';
 
 function App() {
   const currentStage = useGameStore(state => state.currentStage);
+  const resetView = useGameStore(state => state.resetView);
   const inGame = currentStage !== 'intro' && currentStage !== 'post-game';
 
   return (
@@ -40,6 +42,10 @@ function App() {
               <div className="hud-status">
                 <TimerDisplay />
                 <StageProgress />
+                <button type="button" className="btn btn-ghost view-reset" onClick={resetView} title="카메라를 처음 위치로">
+                  <RotateCcw size={14} />
+                  시점 초기화
+                </button>
               </div>
               <div className="hud-inventory">
                 <Inventory />

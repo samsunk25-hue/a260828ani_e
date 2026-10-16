@@ -118,7 +118,7 @@ const AlveolusCluster = () => {
 const DraggableGas = ({ id, kind, initialPosition, onDrop }) => {
   const setIsDragging = useGameStore(state => state.setIsDragging);
   const mesh = useRef();
-  const initPos = new THREE.Vector3(...initialPosition);
+  const [round, setRound] = useState(0);
 
   const handleDragStart = () => setIsDragging(true);
 
@@ -127,17 +127,14 @@ const DraggableGas = ({ id, kind, initialPosition, onDrop }) => {
     if (mesh.current) {
       const worldPos = new THREE.Vector3();
       mesh.current.getWorldPosition(worldPos);
-
       const isSuccess = onDrop(id, worldPos);
-      if (!isSuccess) {
-        // Snap back if wrong
-        mesh.current.position.copy(initPos);
-      }
+      // 실패하면 DragControls를 리마운트해 원래 자리로 되돌린다 (성공 시엔 부모가 언마운트)
+      if (!isSuccess) setRound(r => r + 1);
     }
   };
 
   return (
-    <DragControls onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DragControls key={round} dragLimits={[undefined, undefined, [0, 0]]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <group position={initialPosition} ref={mesh}>
         <Molecule kind={kind} position={[0, 0, 0]} />
       </group>

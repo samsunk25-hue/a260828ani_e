@@ -15,8 +15,10 @@ export const useGameStore = create((set, get) => ({
     excretoryCompleted: false,
   },
   isDragging: false,
-  
+  viewResetTick: 0, // 증가할 때마다 카메라 시점을 초기화한다
+
   setNickname: (name) => set({ nickname: name }),
+  resetView: () => set((state) => ({ viewResetTick: state.viewResetTick + 1 })),
   
   startGame: () => set({ 
     currentStage: 'digestive', 

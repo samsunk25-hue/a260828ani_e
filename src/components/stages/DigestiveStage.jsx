@@ -61,7 +61,7 @@ const DraggableEnzyme = ({ position, color, label, onDrop }) => {
   };
 
   return (
-    <DragControls onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DragControls dragLimits={[undefined, undefined, [0, 0]]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <group ref={mesh}>
         <Sphere args={[0.4, 32, 32]}>
           <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.2} metalness={0.8} />

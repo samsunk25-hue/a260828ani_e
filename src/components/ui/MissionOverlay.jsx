@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, ArrowRight, Check } from 'lucide-react';
+import { Lightbulb, ArrowRight, Check, MousePointer2 } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 
 const missions = {
@@ -13,6 +13,7 @@ const missions = {
       { id: 'amino_acid', label: '아미노산 획득' },
       { id: 'fatty_acid', label: '지방산 획득' },
     ],
+    how: '효소 구슬을 마우스로 누른 채 끌어서 음식물 위에 놓으세요. 맞는 효소면 음식물이 분해됩니다.',
     next: 'respiratory',
     hint: '우리 몸의 각 소화 기관은 특정한 영양소만 분해하는 전문 효소들을 가지고 있습니다. 빵을 더 잘게 나누기 위해 가장 먼저 필요한 효소는 무엇일까요?',
   },
@@ -24,6 +25,7 @@ const missions = {
       { id: 'oxygen', label: '산소 운반 완료' },
       { id: 'co2', label: '이산화탄소 배출 완료' },
     ],
+    how: '산소(O2) 분자 2개는 폐포에서 모세혈관으로, 이산화탄소(CO2) 분자 2개는 모세혈관에서 폐포로 끌어다 놓으세요.',
     next: 'circulatory',
     hint: '기체는 농도가 높은 곳에서 낮은 곳으로 확산됩니다. 방금 신선한 공기를 들이마셨다면, 산소가 가장 많은 곳은 어디일까요?',
   },
@@ -32,6 +34,7 @@ const missions = {
     title: '순환의 방',
     desc: '심장의 4개 방(좌우 심방, 심실)과 온몸을 도는 혈액의 순환 경로를 완성하세요. 깜빡이는 다음 목적지를 확인하고, 혈액 토큰을 올바른 순서대로 드래그하여 이동시키세요.',
     goals: [{ id: 'energy', label: '세포에 에너지 전달' }],
+    how: '혈액 구슬을 깜빡이는 다음 방(또는 세포, 폐)으로 끌어다 놓으세요. 순서: 폐 → 좌심방 → 좌심실 → 세포 → 우심방 → 우심실 → 폐',
     next: 'excretory',
     hint: "심장으로 들어오는 피는 윗방('심방')에서 대기하다가, 아랫방('심실')의 강한 수축력으로 뿜어집니다. 폐에서 산소를 가득 얻은 깨끗한 피는 온몸으로 가기 위해 어느 쪽 심방으로 들어올까요?",
   },
@@ -40,6 +43,7 @@ const missions = {
     title: '배설의 방',
     desc: '네프론(사구체, 보먼주머니, 세뇨관, 모세혈관) 구조를 관찰하고, 물질들을 알맞은 위치로 직접 드래그하여 [여과]와 [재흡수/배설] 과정을 완료하세요.',
     goals: [{ id: 'urea', label: '요소 배설 완료' }],
+    how: '1단계: 단백질은 혈관 위에, 포도당·요소는 보먼주머니 안에 놓으세요. 2단계: 포도당은 모세혈관으로, 요소는 세뇨관 끝(오줌 배출)으로 끌어다 놓으세요.',
     next: 'post-game',
     hint: '크기가 작은 물질들은 높은 압력에 의해 사구체에서 밖으로 밀려납니다(여과). 하지만 우리 몸에 꼭 필요한 포도당과 아미노산은 오줌으로 빠져나가기 전에 다시 혈관으로 되돌려 받아야겠죠?',
   },
@@ -71,6 +75,15 @@ const MissionPanel = ({ currentStage }) => {
       </header>
 
       <p className="mission-desc">{mission.desc}</p>
+
+      <div className="how-box">
+        <div className="how-title">
+          <MousePointer2 size={14} />
+          조작 방법
+        </div>
+        <p>{mission.how}</p>
+        <p className="how-sub">물질을 누른 채 끌어서 놓기 · 빈 배경을 드래그하면 화면이 살짝 회전 · 휠로 확대/축소</p>
+      </div>
 
       <div className="goal-list">
         <div className="goal-label">목표</div>

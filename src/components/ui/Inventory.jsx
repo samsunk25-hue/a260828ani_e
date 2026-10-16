@@ -7,10 +7,13 @@ const Inventory = () => {
   const inventory = useGameStore(state => state.inventory);
 
   return (
-    <div className="glass inventory" aria-label="획득한 아이템">
+    <div className="glass inventory" aria-label="획득한 물질" title="미션을 완료하면 자동으로 쌓입니다. 다음 방으로 가는 열쇠예요.">
       <div className="inventory-label">
         <Package size={14} />
-        <span>INVENTORY</span>
+        <span>
+          획득한 물질
+          <small>미션 완료 시 자동 수집</small>
+        </span>
       </div>
 
       <div className="inventory-items">
@@ -26,7 +29,7 @@ const Inventory = () => {
               <span className="slot" />
               <span className="slot" />
               <span className="slot" />
-              <span>미션을 완료해 아이템을 수집하세요</span>
+              <span>아직 없음 · 미션을 완료하면 여기에 쌓여요</span>
             </motion.div>
           )}
 
