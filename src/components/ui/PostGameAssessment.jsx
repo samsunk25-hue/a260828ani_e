@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TriangleAlert, Bot, Sparkles, DoorOpen, Trophy, Palette, Copy, Check, Loader2 } from 'lucide-react';
+import { TriangleAlert, Bot, Sparkles, DoorOpen, Trophy, Palette, Copy, Check, Loader2, Home } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -29,7 +29,7 @@ const feedbackMessages = {
 };
 
 const PostGameAssessment = () => {
-  const { inventory, finishGame, finalTime, leaderboard } = useGameStore();
+  const { inventory, finishGame, finalTime, leaderboard, resetGame } = useGameStore();
   const [text, setText] = useState('');
   const [feedback, setFeedback] = useState(null); // { ok: boolean, body: string }
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,6 +216,11 @@ const PostGameAssessment = () => {
                 </button>
               </div>
             </section>
+
+            <button type="button" className="btn btn-block" onClick={resetGame}>
+              <Home size={18} />
+              메인 화면으로 (랭킹 보기)
+            </button>
           </motion.div>
         )}
       </motion.div>
