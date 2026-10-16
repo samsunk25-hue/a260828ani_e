@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Box, Sphere, DragControls } from '@react-three/drei';
+import { Box, Sphere, DragControls, MeshDistortMaterial } from '@react-three/drei';
 import Label from '../scene/Label';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
@@ -34,9 +34,9 @@ const Chamber = ({ position, color, label, isTarget }) => {
   );
 };
 
-const Organ = ({ position, color, label, isTarget, isMitochondria }) => {
+const Organ = ({ position, color, label, isTarget }) => {
   const mesh = useRef();
-  
+
   useFrame((state) => {
     mesh.current.rotation.y += 0.01;
     if (isTarget) {
@@ -48,16 +48,104 @@ const Organ = ({ position, color, label, isTarget, isMitochondria }) => {
 
   return (
     <group position={position}>
-      {isMitochondria ? (
-        <Box ref={mesh} args={[3, 1.5, 1.5]} radius={0.5}>
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
-        </Box>
-      ) : (
-        <Sphere ref={mesh} args={[1.5, 32, 32]}>
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+      <Sphere ref={mesh} args={[1.5, 32, 32]}>
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+      </Sphere>
+      <Label position={[0, -2, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
+        {label}
+      </Label>
+    </group>
+  );
+};
+
+// 세포 안의 미토콘드리아 배치 (위치, 회전)
+const MITOCHONDRIA = [
+  { pos: [-0.95, 0.55, 0.35], rot: [0.3, 0.2, 0.9] },
+  { pos: [1.1, -0.45, 0.25], rot: [0.1, 0.6, -0.7] },
+  { pos: [-0.75, -0.75, -0.3], rot: [0.8, 0.1, 0.3] },
+  { pos: [0.35, 0.95, -0.45], rot: [0.2, 0.9, 1.3] },
+  { pos: [0.9, 0.6, 0.6], rot: [1.1, 0.3, -0.4] },
+];
+
+// 작은 소포/리보솜 점들
+const VESICLES = [
+  [-1.3, 0.1, 0.5], [1.4, 0.2, -0.3], [-0.3, -1.1, 0.6], [0.5, -0.1, 0.9],
+  [-1.0, 1.0, -0.2], [1.2, -1.0, 0.4], [0.0, 0.4, -1.0], [-0.5, 0.9, 0.8],
+];
+
+const Mitochondrion = ({ pos, rot }) => (
+  <group position={pos} rotation={rot}>
+    {/* 외막 */}
+    <mesh>
+      <capsuleGeometry args={[0.17, 0.42, 8, 16]} />
+      <meshStandardMaterial color="#ff7a45" emissive="#ff3b1a" emissiveIntensity={0.6} roughness={0.35} />
+    </mesh>
+    {/* 내막 주름(크리스타) 느낌의 밝은 띠 */}
+    {[-0.12, 0.02, 0.16].map((y, i) => (
+      <mesh key={i} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.1, 0.025, 6, 16]} />
+        <meshStandardMaterial color="#ffd0a8" emissive="#ffb080" emissiveIntensity={0.9} />
+      </mesh>
+    ))}
+  </group>
+);
+
+// 동물 세포: 둥근 세포막 + 핵(핵소체) + 미토콘드리아 + 소포
+const AnimalCell = ({ position, label, isTarget }) => {
+  const inner = useRef();
+  const membrane = useRef();
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (inner.current) {
+      inner.current.rotation.y += 0.004;
+      inner.current.scale.setScalar(isTarget ? 1 + Math.sin(t * 5) * 0.06 : 1);
+    }
+    if (membrane.current) {
+      membrane.current.emissiveIntensity = isTarget ? 0.35 + Math.sin(t * 5) * 0.25 : 0.15;
+    }
+  });
+
+  return (
+    <group position={position}>
+      <group ref={inner}>
+        {/* 핵 + 핵소체 */}
+        <Sphere args={[0.6, 32, 32]} position={[0.15, 0.05, 0]}>
+          <meshStandardMaterial color="#b784ff" emissive="#6a2cff" emissiveIntensity={0.5} roughness={0.45} />
         </Sphere>
-      )}
-      <Label position={[0, isMitochondria ? -1.5 : -2, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
+        <Sphere args={[0.2, 16, 16]} position={[0.32, 0.2, 0.38]}>
+          <meshStandardMaterial color="#4a1a9e" emissive="#2a0a6e" emissiveIntensity={0.6} roughness={0.5} />
+        </Sphere>
+
+        {/* 미토콘드리아 */}
+        {MITOCHONDRIA.map((m, i) => <Mitochondrion key={i} {...m} />)}
+
+        {/* 소포 / 리보솜 */}
+        {VESICLES.map((p, i) => (
+          <Sphere key={i} args={[0.07, 10, 10]} position={p}>
+            <meshStandardMaterial color="#ffe9a8" emissive="#ffd27a" emissiveIntensity={0.7} />
+          </Sphere>
+        ))}
+
+        {/* 세포막 (반투명, 살짝 일렁이는 불규칙한 둥근 모양) */}
+        <Sphere args={[1.75, 64, 64]} scale={[1.25, 1, 1.05]}>
+          <MeshDistortMaterial
+            ref={membrane}
+            color="#ffd27a"
+            emissive="#ff9f43"
+            emissiveIntensity={0.15}
+            transparent
+            opacity={0.32}
+            distort={0.16}
+            speed={1.4}
+            roughness={0.15}
+            clearcoat={1}
+            depthWrite={false}
+          />
+        </Sphere>
+      </group>
+
+      <Label position={[0, -2.5, 0]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
         {label}
       </Label>
     </group>
@@ -67,7 +155,13 @@ const Organ = ({ position, color, label, isTarget, isMitochondria }) => {
 const DraggableBlood = ({ position, isOxygenated, onDrop }) => {
   const setIsDragging = useGameStore(state => state.setIsDragging);
   const mesh = useRef();
-  
+
+  // 마운트 시에만 시작 위치를 적용한다 (DragControls가 matrix를 직접 조작하므로
+  // React prop으로 position을 주면 드래그 중 충돌이 생긴다).
+  useEffect(() => {
+    if (mesh.current) mesh.current.position.set(...position);
+  }, [position]);
+
   const handleDragEnd = () => {
     setIsDragging(false);
     if (mesh.current) {
@@ -106,7 +200,9 @@ const CirculatoryStage = () => {
   
   // sequence: 0: Lungs -> 1: LA -> 2: LV -> 3: Body -> 4: RA -> 5: RV -> 6: Lungs (End)
   const [step, setStep] = useState(0);
-  const [bloodPos, setBloodPos] = useState([0, 4.5, 2]); // Starts at Lungs
+  // 심방/심실 박스 앞면(z≈1.4)보다 앞에 두어 토큰이 항상 가려지지 않게 한다
+  const BLOOD_Z = 3;
+  const [bloodPos, setBloodPos] = useState([0, 4.5, BLOOD_Z]); // Starts at Lungs
   const [isOxygenated, setIsOxygenated] = useState(true);
   const [feedback, setFeedback] = useState({ text: '', color: '', visible: false });
 
@@ -142,7 +238,7 @@ const CirculatoryStage = () => {
       setStep(nextStep);
       
       // Update blood position slightly in front of the target so it's visible
-      setBloodPos([targetNode.pos[0], targetNode.pos[1], 2]);
+      setBloodPos([targetNode.pos[0], targetNode.pos[1], BLOOD_Z]);
       showFeedback(`✅ ${targetNode.label} 도착 성공!`, "#39ff14");
 
       // Special events at Body (Cells)
@@ -190,7 +286,7 @@ const CirculatoryStage = () => {
       </group>
 
       {/* Body Cells / Mitochondria (Bottom) */}
-      <Organ position={pathNodes[3].pos} color="#ffcc00" label="온몸의 세포 / 미토콘드리아" isTarget={step === 2} isMitochondria={true} />
+      <AnimalCell position={pathNodes[3].pos} label="온몸의 세포 (미토콘드리아)" isTarget={step === 2} />
 
       {/* Draggable Blood Token */}
       {step < 6 && (
