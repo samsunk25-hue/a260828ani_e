@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 난이도별 컬렉션: scores_easy, scores_hard. 누구나 읽기, 검증된 새 기록만 추가. 수정/삭제 불가.
+    function isScoreCol(col) { return col == 'scores_easy' || col == 'scores_hard'; }
+    function modeOf(col) { return col == 'scores_hard' ? 'hard' : 'easy'; }
+    match /{col}/{id} {
+      allow read: if isScoreCol(col);
+      allow create: if isScoreCol(col)
+        && request.resource.data.keys().hasOnly(['nickname', 'mode', 'time', 'score', 'date', 'maxCombo'])
+        && request.resource.data.mode == modeOf(col)
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 1 && request.resource.data.nickname.size() <= 16
+        && request.resource.data.time is number && request.resource.data.time > 0 && request.resource.data.time < 86400000
+        && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score < 1000000
+        && request.resource.data.maxCombo is number && request.resource.data.maxCombo >= 0
+        && request.resource.data.date is number;
+      allow update, delete: if false;
+    }
+  }
+}

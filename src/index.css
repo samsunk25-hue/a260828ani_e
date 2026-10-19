@@ -568,6 +568,25 @@ button:disabled { cursor: not-allowed; }
 .vitality-stats .combo.hot { color: var(--orange); }
 .vitality-stats .combo.hot svg { color: var(--orange); }
 
+/* 어려움 모드 소화의 방: 효소 이름 입력창 (Canvas 위 Html) */
+.enzyme-prompt {
+  width: min(520px, 92vw);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+.enzyme-prompt-q { font-size: 0.9rem; line-height: 1.5; word-break: keep-all; }
+.enzyme-prompt-q strong { color: var(--accent); }
+.enzyme-prompt-row { display: flex; gap: 8px; }
+.enzyme-prompt-row .input { flex: 1; min-width: 0; }
+.enzyme-prompt-fb { font-size: 0.84rem; line-height: 1.5; word-break: keep-all; }
+.enzyme-prompt-fb.ok { color: var(--lime); }
+.enzyme-prompt-fb.no { color: var(--red); }
+
 /* 모달 공통 */
 .modal-backdrop {
   position: absolute;
@@ -894,6 +913,48 @@ button:disabled { cursor: not-allowed; }
 .result-card p { font-size: 0.86rem; color: var(--text-2); margin-bottom: 12px; line-height: 1.6; word-break: keep-all; }
 .result-card.gold { --card-color: var(--gold); --card-line: rgba(255, 207, 90, 0.4); --card-bg: rgba(255, 207, 90, 0.07); }
 .result-card.orange { --card-color: var(--orange); --card-line: rgba(255, 159, 67, 0.4); --card-bg: rgba(255, 159, 67, 0.07); }
+
+/* 결과 요약 / 랭킹 등록 선택 */
+.result-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.result-stats > div { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--line); }
+.result-stats dt { font-size: 0.7rem; color: var(--text-3); font-weight: 700; letter-spacing: 0.04em; margin-bottom: 4px; }
+.result-stats dd { font-size: 1.1rem; font-weight: 800; color: var(--gold); }
+.result-stats .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.result-note { font-size: 0.72rem !important; color: var(--text-3) !important; margin-bottom: 10px !important; }
+.share-box { padding: 12px 14px; border-radius: var(--radius-sm); background: rgba(34, 227, 255, 0.08); border: 1px solid rgba(34, 227, 255, 0.35); display: flex; flex-direction: column; gap: 10px; }
+.share-q { display: flex; align-items: flex-start; gap: 8px; font-size: 0.88rem !important; color: var(--text) !important; margin: 0 !important; line-height: 1.55 !important; }
+.share-q svg { flex: none; margin-top: 3px; color: var(--cyan); }
+.share-q strong { color: var(--cyan); }
+.share-fail { font-size: 0.8rem !important; color: var(--red) !important; margin: 0 !important; }
+.share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-actions .btn { flex: 1; }
+.share-done { display: flex; align-items: center; gap: 6px; font-size: 0.85rem !important; color: var(--lime) !important; margin: 0 !important; font-weight: 600; }
+.share-done.muted { color: var(--text-3) !important; }
+
+/* 복사·붙여넣기 차단 안내 */
+.textarea-wrap { position: relative; }
+.textarea-note {
+  position: absolute;
+  left: 10px; bottom: 10px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 59, 107, 0.16);
+  border: 1px solid rgba(255, 59, 107, 0.5);
+  color: var(--red);
+  font-size: 0.74rem;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.textarea-note.show { opacity: 1; transform: translateY(0); }
+
+/* 전체 랭킹 상태 */
+.ranking-scope { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 3px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; color: var(--cyan); background: rgba(34, 227, 255, 0.12); border: 1px solid rgba(34, 227, 255, 0.35); }
+.ranking-offline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.74rem; color: var(--amber); padding: 8px 10px; border-radius: var(--radius-sm); background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.35); }
+.ranking-offline .btn { min-height: 26px; padding: 2px 8px; font-size: 0.72rem; margin-left: auto; }
 
 .final-score { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-2); margin-bottom: 12px; }
 .final-score strong { font-size: 1.4rem; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }

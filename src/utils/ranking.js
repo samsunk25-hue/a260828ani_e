@@ -14,9 +14,10 @@ export const MODE_LABEL = { easy: '쉬움', hard: '어려움' };
 
 const normalizeName = (name) => (name || '').trim().toLowerCase();
 
-/** 이 별명으로 쉬움 모드를 탈출(완주)한 기록이 있는가 — 어려움 모드 해금 조건 */
-export const hasClearedEasy = (leaderboard, nickname) => {
+/** 이 별명으로 쉬움 모드를 탈출(완주)한 적이 있는가 — 어려움 모드 해금 조건 (랭킹 등록 여부와 무관) */
+export const hasClearedEasy = (leaderboard, nickname, clearedEasy = []) => {
   const key = normalizeName(nickname);
   if (!key) return false;
+  if (clearedEasy.some(n => normalizeName(n) === key)) return true;
   return leaderboard.some(r => recordMode(r) === 'easy' && normalizeName(r.nickname) === key);
 };

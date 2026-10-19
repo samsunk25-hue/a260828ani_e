@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Rocket, MousePointer2, Trophy, Medal, Leaf, Flame, Check, Lock, LockOpen } from 'lucide-react';
+import { Rocket, MousePointer2, Trophy, Medal, Leaf, Flame, Check, Lock, LockOpen, Globe, RefreshCw, WifiOff } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatTime, formatDate } from '../../utils/time';
 import { rankRecords, MODE_LABEL, hasClearedEasy } from '../../utils/ranking';
+import { fetchTopScores, TOP_N } from '../../services/leaderboardApi';
 
 const systems = [
   { num: 1, label: '소화계', color: 'var(--orange)' },
@@ -25,17 +26,28 @@ const MODES = [
     label: '어려움',
     icon: Flame,
     tagline: '거인을 살려라!',
-    points: ['거인 생명력이 계속 줄어듦 · 실수하면 더 감소', '안내 표시 없음 · 힌트는 생명력 소모', '방마다 관문 퀴즈 · 점수와 콤보로 랭킹'],
+    points: ['거인 생명력이 계속 줄어듦 · 실수하면 더 감소', '안내 표시 없음 · 힌트는 생명력 소모', '효소 이름 직접 입력 · 관문 퀴즈 · 점수와 콤보'],
   },
 ];
 
-const MAX_ROWS = 10;
-
-const RankingCard = ({ leaderboard, initialMode }) => {
+/** 전체 사용자 상위 5명 (난이도별). 네트워크 실패 시 이 기기의 기록으로 대체. */
+export const GlobalRankingCard = ({ initialMode, highlightDate }) => {
+  const localBoard = useGameStore(state => state.leaderboard);
   const [tab, setTab] = useState(initialMode);
-  const rows = rankRecords(leaderboard, tab);
-  const shown = rows.slice(0, MAX_ROWS);
+  const [state, setState] = useState({ loading: true, error: false, rows: [] });
+  const [reloadTick, setReloadTick] = useState(0);
   const isHard = tab === 'hard';
+
+  useEffect(() => {
+    let alive = true;
+    setState(s => ({ ...s, loading: true, error: false }));
+    fetchTopScores(tab, TOP_N)
+      .then(rows => { if (alive) setState({ loading: false, error: false, rows }); })
+      .catch(() => { if (alive) setState({ loading: false, error: true, rows: rankRecords(localBoard, tab).slice(0, TOP_N) }); });
+    return () => { alive = false; };
+    // localBoard는 실패 시 대체용이라 의존성에서 뺀다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, reloadTick]);
 
   return (
     <section className="glass glass-strong ranking-card" aria-labelledby="ranking-title">
@@ -43,6 +55,7 @@ const RankingCard = ({ leaderboard, initialMode }) => {
         <h2 id="ranking-title">
           <Trophy size={18} />
           명예의 전당
+          <span className="ranking-scope"><Globe size={12} /> 전체 TOP {TOP_N}</span>
         </h2>
         <div className="ranking-tabs" role="tablist">
           {Object.keys(MODE_LABEL).map(m => (
@@ -61,7 +74,22 @@ const RankingCard = ({ leaderboard, initialMode }) => {
         <span className="ranking-sub">{isHard ? '점수 높은 순 (동점이면 빠른 순)' : '탈출 시간 빠른 순'}</span>
       </header>
 
-      {shown.length === 0 ? (
+      {state.error && (
+        <div className="ranking-offline">
+          <WifiOff size={13} />
+          전체 랭킹을 불러오지 못했습니다. 이 기기의 기록을 대신 보여줍니다.
+          <button type="button" className="btn btn-ghost" onClick={() => setReloadTick(t => t + 1)}>
+            <RefreshCw size={13} /> 다시 시도
+          </button>
+        </div>
+      )}
+
+      {state.loading ? (
+        <div className="ranking-empty">
+          <RefreshCw size={24} className="spin" />
+          <p>전체 랭킹을 불러오는 중…</p>
+        </div>
+      ) : state.rows.length === 0 ? (
         <div className="ranking-empty">
           <Medal size={28} />
           <p>아직 {MODE_LABEL[tab]} 기록이 없어요.<br />첫 번째 탈출자가 되어 보세요!</p>
@@ -78,8 +106,11 @@ const RankingCard = ({ leaderboard, initialMode }) => {
               </tr>
             </thead>
             <tbody>
-              {shown.map((record, index) => (
-                <tr key={`${record.date}-${index}`} className={index === 0 ? 'top' : ''}>
+              {state.rows.map((record, index) => (
+                <tr
+                  key={record.id || `${record.date}-${index}`}
+                  className={`${index === 0 ? 'top' : ''} ${highlightDate && record.date === highlightDate ? 'me' : ''}`}
+                >
                   <td>
                     <span className="rank">
                       {index + 1}위
@@ -98,10 +129,6 @@ const RankingCard = ({ leaderboard, initialMode }) => {
           </table>
         </div>
       )}
-
-      {rows.length > MAX_ROWS && (
-        <p className="ranking-more">외 {rows.length - MAX_ROWS}명의 기록</p>
-      )}
     </section>
   );
 };
@@ -113,10 +140,11 @@ const IntroScreen = () => {
   const setMode = useGameStore(state => state.setMode);
   const startGame = useGameStore(state => state.startGame);
   const leaderboard = useGameStore(state => state.leaderboard);
+  const clearedEasy = useGameStore(state => state.clearedEasy);
   const ready = nickname.trim().length > 0;
 
   // 어려움 모드는 같은 별명으로 쉬움 모드를 통과한 뒤에만 도전할 수 있다
-  const hardUnlocked = hasClearedEasy(leaderboard, nickname);
+  const hardUnlocked = hasClearedEasy(leaderboard, nickname, clearedEasy);
   const effectiveMode = mode === 'hard' && !hardUnlocked ? 'easy' : mode;
   const isHard = effectiveMode === 'hard';
 
@@ -242,7 +270,7 @@ const IntroScreen = () => {
           exit={{ y: -16, opacity: 0 }}
           transition={{ duration: 0.5, delay: 0.1, ease: [0.2, 0.8, 0.2, 1] }}
         >
-          <RankingCard leaderboard={leaderboard} initialMode={effectiveMode} />
+          <GlobalRankingCard initialMode={effectiveMode} />
         </motion.div>
       </div>
     </motion.div>

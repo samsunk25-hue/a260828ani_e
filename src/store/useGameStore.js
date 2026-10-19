@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { resetQuizHistory } from '../data/quiz';
 
 // Stages: 'intro', 'digestive', 'respiratory', 'circulatory', 'excretory', 'post-game'
 // Modes:  'easy' (안내·힌트·표시 제공, 시간 기록) | 'hard' (생명력·패널티·퀴즈 관문·점수)
@@ -16,12 +17,18 @@ export const HARD_RULES = {
   timeBonusWindowSec: 600, // 이 시간 안에 끝내면 남은 초당 2점
 };
 
-const loadLeaderboard = () => {
+const LS_BOARD = 'escapeLeaderboard';
+const LS_CLEARED = 'escapeClearedEasy';
+
+const loadJson = (key, fallback) => {
   try {
-    return JSON.parse(localStorage.getItem('escapeLeaderboard') || '[]');
+    return JSON.parse(localStorage.getItem(key) || '') ?? fallback;
   } catch {
-    return [];
+    return fallback;
   }
+};
+const saveJson = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 저장 불가 환경 */ }
 };
 
 const freshRun = () => ({
@@ -34,6 +41,7 @@ const freshRun = () => ({
   isGameOver: false,
   finalTime: null,
   finalScore: null,
+  pendingResult: null, // 탈출 직후, 랭킹 등록 여부를 고르기 전까지의 결과
   isDragging: false,
 });
 
@@ -49,7 +57,8 @@ export const useGameStore = create((set) => ({
   nickname: '',
   mode: 'easy',
   startTime: null,
-  leaderboard: loadLeaderboard(),
+  leaderboard: loadJson(LS_BOARD, []),     // 이 기기에 저장된 기록
+  clearedEasy: loadJson(LS_CLEARED, []),   // 이 기기에서 쉬움 모드를 통과한 별명들 (어려움 해금)
   viewResetTick: 0, // 증가할 때마다 카메라 시점을 초기화한다
   ...freshRun(),
 
@@ -57,44 +66,61 @@ export const useGameStore = create((set) => ({
   setMode: (mode) => set({ mode }),
   resetView: () => set((state) => ({ viewResetTick: state.viewResetTick + 1 })),
 
-  startGame: () => set({
-    ...freshRun(),
-    currentStage: 'digestive',
-    startTime: Date.now(),
-  }),
+  startGame: () => {
+    resetQuizHistory();
+    set({ ...freshRun(), currentStage: 'digestive', startTime: Date.now() });
+  },
 
   // 게임 오버 후 같은 별명·난이도로 처음부터 다시
-  retryRun: () => set({
-    ...freshRun(),
-    currentStage: 'digestive',
-    startTime: Date.now(),
-  }),
+  retryRun: () => {
+    resetQuizHistory();
+    set({ ...freshRun(), currentStage: 'digestive', startTime: Date.now() });
+  },
 
+  /** 탈출 시각을 확정하고 결과를 계산한다. 기록 저장은 publishResult에서 선택적으로. */
   finishGame: () => set((state) => {
     if (!state.startTime || state.finalTime) return state;
     const endTime = Date.now();
     const duration = endTime - state.startTime;
 
-    let finalScore = null;
+    let finalScore = 0;
     if (state.mode === 'hard') {
       const seconds = Math.floor(duration / 1000);
       const timeBonus = Math.max(0, HARD_RULES.timeBonusWindowSec - seconds) * 2;
       finalScore = Math.round(state.score + Math.round(state.hp) * HARD_RULES.hpBonusPerPoint + timeBonus);
     }
 
-    const newRecord = {
-      nickname: state.nickname,
+    const pendingResult = {
+      nickname: state.nickname.trim() || '이름 없음',
       time: duration,
       date: endTime,
       mode: state.mode,
       score: finalScore,
       maxCombo: state.maxCombo,
     };
-    const updatedLeaderboard = [...state.leaderboard, newRecord].sort((a, b) => a.time - b.time);
-    localStorage.setItem('escapeLeaderboard', JSON.stringify(updatedLeaderboard));
 
-    return { finalTime: duration, finalScore, leaderboard: updatedLeaderboard };
+    // 쉬움 모드 완주는 랭킹 등록과 상관없이 어려움 모드 해금 조건으로 기록한다
+    let clearedEasy = state.clearedEasy;
+    if (state.mode === 'easy') {
+      const key = pendingResult.nickname.toLowerCase();
+      if (!clearedEasy.map(n => n.toLowerCase()).includes(key)) {
+        clearedEasy = [...clearedEasy, pendingResult.nickname];
+        saveJson(LS_CLEARED, clearedEasy);
+      }
+    }
+
+    return { finalTime: duration, finalScore: state.mode === 'hard' ? finalScore : null, pendingResult, clearedEasy };
   }),
+
+  /** 결과를 이 기기의 기록에 남긴다 (전체 랭킹 전송은 호출한 쪽에서 API로). */
+  saveResultLocally: () => set((state) => {
+    if (!state.pendingResult) return state;
+    const updated = [...state.leaderboard, state.pendingResult].sort((a, b) => a.time - b.time);
+    saveJson(LS_BOARD, updated);
+    return { leaderboard: updated };
+  }),
+
+  clearPendingResult: () => set({ pendingResult: null }),
 
   setIsDragging: (dragging) => set({ isDragging: dragging }),
 
